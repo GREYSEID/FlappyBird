@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>flappy bird</title>
+    <meta name="author" content="GREYSEID">
+    <style>
+        body {
+            margin: 0px;
+            padding: 0px;
+            overflow: hidden;
+        }
+        a{
+            color: white;
+        }
+        a:hover{
+            color: red;
+        }
+    </style>
+    <script>
+        var canvasx = 1400;/*最好2:1的比例*/
+        var canvasy = 700;
+        var grade = 0;/*分数*/
+        var beginflag = 0;/*确定开始状态*/
+        var endflag = 0;/*确定结束状态*/
+        var downflag = 1;/*防止结束的时候是长按按钮，导致开始了不能升起来*/
+        var BIRD = {
+            x: 650,
+            y: 300,
+            width: 50,
+            height: 50,
+            img: '2.png',
+            yup: 8,
+            ydown: 5
+        }
+        var block = 3 * 100;/*空隙*/
+        var PIPE1 = {
+            x: 0,
+            y: 0,
+            oldx: 0,
+            primaryx: 0,
+            xmove: 1,
+            width: 100,
+            img: '1.png',
+            topheight: 200,
+            bottomheight: 200
+        }
+        var PIPE2 = {
+            x: 467,
+            y: 0,
+            oldx: 0,
+            primaryx: 467,
+            xmove: 1,
+            width: 100,
+            img: '1.png',
+            topheight: 200,
+            bottomheight: 300
+        }
+        var PIPE3 = {
+            x: 934,
+            y: 0,
+            oldx: 0,
+            primaryx: 934,
+            xmove: 1,
+            width: 100,
+            img: '1.png',
+            topheight: 200,
+            bottomheight: 300
+        }
+        function bird()/*bird's body*/ {
+            var x = 0;
+            var y = 0;
+        }
+        function draw() {
+            var c = document.getElementById("mc");
+            var ctx = c.getContext("2d");
+            var img = new Image();   // 创建一个<img>元素
+            img.src = BIRD.img;
+            ctx.lineWidth = 0;
+            ctx.drawImage(img, BIRD.x, BIRD.y, BIRD.width, BIRD.height);
+        }
+        function getMath(min, max) {
+            return Math.floor(Math.random() * (max - min) + min);
+        }
+        function drawPIPE(param) {/*用onload加载有问题*/
+            var c = document.getElementById("mc");
+            var ctx = c.getContext("2d");
+            ctx.clearRect(param.oldx, param.y, param.width, param.topheight);
+            ctx.clearRect(param.oldx, param.y + param.topheight + block, param.width, param.bottomheight);
+            var img = new Image();
+            img.src = param.img;
+            /*var t = getMath(0, 700 - block);
+            param.topheight = t;
+            param.bottomheight = 700 - param.topheight - block;*/
+            ctx.lineWidth = 0;
+            ctx.drawImage(img, param.x, param.y, param.width, param.topheight);
+            ctx.drawImage(img, param.x, param.y + param.topheight + block, param.width, param.bottomheight);
+        }
+        function drawPIPE1() {
+            var c = document.getElementById("mc");
+            var ctx = c.getContext("2d");
+            ctx.clearRect(PIPE1.x, PIPE1.y, PIPE1.width, PIPE1.topheight);
+            ctx.clearRect(PIPE1.x, PIPE1.y + PIPE1.topheight + block, PIPE1.width, PIPE1.bottomheight);
+            var img = new Image();
+            img.src = PIPE1.img;
+            var t = getMath(0, canvasy - block);
+            PIPE1.topheight = t;
+            PIPE1.bottomheight = canvasy - PIPE1.topheight - block;
+            ctx.lineWidth = 0;
+            ctx.drawImage(img, PIPE1.x, PIPE1.y, PIPE1.width, PIPE1.topheight);
+            ctx.drawImage(img, PIPE1.x, PIPE1.y + PIPE1.topheight + block, PIPE1.width, PIPE1.bottomheight);
+        }
+        function jump() {
+            var c = document.getElementById("mc");
+            var ctx = c.getContext("2d");
+            ctx.clearRect(BIRD.x, BIRD.y, BIRD.width, BIRD.height);
+            BIRD.y -= BIRD.yup;
+            var img = new Image();   // 创建一个<img>元素
+            img.src = BIRD.img;
+            ctx.lineWidth = 0;
+            ctx.drawImage(img, BIRD.x, BIRD.y, BIRD.width, BIRD.height);
+        }
+        function down() {/*自由落体函数*/
+            var c = document.getElementById("mc");
+            var ctx = c.getContext("2d");
+            ctx.clearRect(BIRD.x, BIRD.y, BIRD.width, BIRD.height);
+            BIRD.y += BIRD.ydown;
+            var img = new Image();   // 创建一个<img>元素
+            img.src = BIRD.img;
+            ctx.lineWidth = 0;
+            ctx.drawImage(img, BIRD.x, BIRD.y, BIRD.width, BIRD.height);
+        }
+        var timerjudge = null;
+        var lastPIPE = 0;/*防止经过一个柱子时重复加分数*/
+        function judge() {/*碰撞判定*/
+            if (BIRD.y < 0)/*触顶*/ {
+                end();
+                return 0;
+            }
+            if (BIRD.y > canvasy) {/*触底*/
+                end();
+                return 0;
+            }
+            if (BIRD.x <= (PIPE1.x + PIPE1.width) && BIRD.x >= (PIPE1.x - BIRD.width)) {
+                if ((BIRD.y >= PIPE1.y && BIRD.y <= (PIPE1.y + PIPE1.topheight)) || (BIRD.y >= (PIPE1.y + PIPE1.topheight + block - BIRD.height))) {
+                    end();
+                    return 0;
+                }
+            }
+            if (BIRD.x <= (PIPE2.x + PIPE2.width) && BIRD.x >= (PIPE2.x - BIRD.width)) {
+                if ((BIRD.y >= PIPE2.y && BIRD.y <= (PIPE2.y + PIPE2.topheight)) || (BIRD.y >= (PIPE2.y + PIPE2.topheight + block - BIRD.height))) {
+                    end();
+                    return 0;
+                }
+            }
+            if (BIRD.x <= (PIPE3.x + PIPE3.width) && BIRD.x >= (PIPE3.x - BIRD.width)) {
+                if ((BIRD.y >= PIPE3.y && BIRD.y <= (PIPE3.y + PIPE3.topheight)) || (BIRD.y >= (PIPE3.y + PIPE3.topheight + block - BIRD.height))) {
+                    end();
+                    return 0;
+                }
+            }
+            if (BIRD.x == (PIPE1.x + PIPE1.width)) {
+                if (lastPIPE != 1) {
+                    grade++;
+                    document.getElementById("grade").innerHTML = grade;
+                    lastPIPE = 1;
+                }
+                return 0;
+            }
+            else if (BIRD.x == (PIPE2.x + PIPE2.width)) {
+                if (lastPIPE != 2) {
+                    grade++;
+                    document.getElementById("grade").innerHTML = grade + "";
+                    lastPIPE = 2;
+                }
+                return 0;
+            }
+            else if (BIRD.x == (PIPE3.x + PIPE3.width)) {
+                if (lastPIPE != 3) {
+                    grade++;
+                    document.getElementById("grade").innerHTML = grade + "";
+                    lastPIPE = 3;
+                }
+                return 0;
+            }
+        }
+        var timerup = null;
+        var flag = 0;/*保证不会疯狂启动定时器*/
+        function keydown() {/*按钮长按时不会卡顿*/
+            if (downflag == 1) {/*保证长按按钮结束后不会重新开始*/
+                if (flag == 0) {
+                    timerup = setInterval(jump, 1);
+                    flag = 1;
+                }
+                if (clearflag == 1) {
+                    clearpicture();
+                }
+                downflag = 0;/*确保没有按住按钮结束，不需要按两次按钮开始*/
+            }
+        }
+        function keyup() {
+            clearInterval(timerup);
+            flag = 0;
+            downflag = 1;/*保证结束后按钮抬起才能开始*/
+        }
+        var timerdown = null;
+        var timerpipe = null;
+        var tflag = 0;
+        var t = 0;
+        function move() {
+            PIPE1.oldx = PIPE1.x;
+            PIPE1.x -= PIPE1.xmove;
+            if (PIPE1.x < (0 - PIPE1.width)) {
+                PIPE1.x = canvasx;
+                if (tflag == 1) {
+                    var temp = getMath(0, canvasy - block);
+                    PIPE1.topheight = temp;
+                    PIPE1.bottomheight = canvasy - PIPE1.topheight - block;
+                }
+            }
+            drawPIPE(PIPE1);
+            PIPE2.oldx = PIPE2.x;
+            PIPE2.x -= PIPE2.xmove;
+            if (PIPE2.x < (0 - PIPE2.width)) {
+                PIPE2.x = canvasx;
+                if (tflag == 1) {
+                    var temp = getMath(0, canvasy - block);
+                    PIPE2.topheight = temp;
+                    PIPE2.bottomheight = canvasy - PIPE2.topheight - block;
+                }
+            }
+            drawPIPE(PIPE2);
+            PIPE3.oldx = PIPE3.x;
+            PIPE3.x -= PIPE3.xmove;
+            if (PIPE3.x < (0 - PIPE3.width)) {
+                PIPE3.x = canvasx;
+                if (tflag == 1) {
+                    var temp = getMath(0, canvasy - block);
+                    PIPE3.topheight = temp;
+                    PIPE3.bottomheight = canvasy - PIPE3.topheight - block;
+                }
+            }
+            drawPIPE(PIPE3);
+        }
+        function begin() {/*开始*/
+            if (t == 0) {
+                timerdown = setInterval(down, 10);
+                t = 1;
+                tflag = 1;
+                timerjudge = setInterval(judge, 1);
+            }
+        }
+        function resetPIPE(param) {
+            var c = document.getElementById("mc");
+            var ctx = c.getContext("2d");
+            ctx.clearRect(param.x, param.y, param.width, param.topheight);
+            ctx.clearRect(param.x, param.y + param.topheight + block, param.width, param.bottomheight);
+            var img = new Image();
+            img.src = param.img;
+            param.x = param.primaryx;
+            param.topheight = 200;
+            param.bottomheight = 300;
+            ctx.lineWidth = 0;
+            ctx.drawImage(img, param.x, param.y, param.width, param.topheight);
+            ctx.drawImage(img, param.x, param.y + param.topheight + block, param.width, param.bottomheight);
+        }
+        function end()/*结束*/ {
+            clearInterval(timerdown);
+            clearInterval(timerup);
+            clearInterval(timerjudge);
+            resetPIPE(PIPE1);
+            resetPIPE(PIPE2);
+            resetPIPE(PIPE3);
+            continuepicture();
+            if(downflag!=1)downflag = 0;
+            grade = 0;
+            tflag = 0;
+            t = 0;
+            var c = document.getElementById("mc");
+            var ctx = c.getContext("2d");
+            ctx.clearRect(BIRD.x, BIRD.y, BIRD.width, BIRD.height);
+            BIRD.x = 650;
+            BIRD.y = 300;
+            var img = new Image();   // 创建一个<img>元素
+            img.src = BIRD.img;
+            ctx.lineWidth = 0;
+            ctx.drawImage(img, BIRD.x, BIRD.y, BIRD.width, BIRD.height);
+            lastPIPE = 0;
+            document.getElementById("grade").innerHTML = grade + "";
+        }
+        var clearflag = 1;
+        function beginpicture() {
+            var c = document.getElementById("mc2");
+            var ctx = c.getContext("2d");
+            if (beginflag == 0) {
+                ctx.font = "30px Arial";
+                ctx.fillText("START GAME", 580, 300);
+                ctx.font = "15px Arial";
+                ctx.fillText("点击任意按钮开始", 620, 315);
+                beginflag = 1;
+                clearflag = 1;
+            }
+        }
+        function clearpicture() {/*清楚整个页面*/
+            var c = document.getElementById("mc2");
+            var ctx = c.getContext("2d");
+            ctx.clearRect(0, 0, canvasx, canvasy);
+            clearflag = 0;
+        }
+        function continuepicture() {
+            var c = document.getElementById("mc2");
+            var ctx = c.getContext("2d");
+            ctx.font = "30px Arial";
+            ctx.fillText("GAME OVER", 585, 300);
+            ctx.font = "15px Arial";
+            ctx.fillText("点击任意按钮开始", 620, 315);
+            ctx.fillText("得分：" + document.getElementById("grade").innerHTML, 650, 330);
+            clearflag = 1;
+        }
+        function reset(){
+            end();
+            clearpicture();
+            beginflag=0;
+            beginpicture();
+        }
+    </script>
+</head>
+
+<body onload="draw();setInterval(move,10);beginpicture();" onkeyup="keyup();"
+    onkeydown="if(t==0&&downflag==1)begin();keydown();">
+    <span>得分：</span><span id="grade">0</span>&nbsp;<a onclick="reset()" style="border: 1px solid rgb(207, 207, 207);background-color: rgb(207, 207, 207);cursor: default;">reset</a>
+    <div style="margin:0 auto;width: 1400px;height: 700px;">
+        <canvas id="mc" style="border:1px solid black;position: absolute;z-index: 1;" width="1400px;" height="700px">
+            <img src="timg.jfif" id="p">
+            <img src="timg (1).jfif" id="pi">
+        </canvas>
+        <canvas id="mc2" style="position: absolute;z-index: 2;" width="1400px;" height="700px"></canvas>
+    </div>
+</body>
+
+</html>
